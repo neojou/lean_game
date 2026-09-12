@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.neojou.leangame"
-version = "0.1.0"
+version = "0.2.0"
 
 kotlin {
     jvm("desktop")
@@ -21,11 +21,18 @@ kotlin {
                 implementation(compose.material3)
                 implementation(compose.ui)
                 implementation(compose.components.resources)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
             }
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
             }
         }
     }

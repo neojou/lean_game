@@ -1,0 +1,13 @@
+This directory contains a minimal excerpt of definitions and pedagogical
+tactic syntax from the Natural Number Game (NNG4):
+
+  https://github.com/leanprover-community/NNG4
+
+NNG4 is licensed under the Apache License, Version 2.0.
+See LICENSE-NNG4 in this directory.
+
+The unsolved statement in Play.lean is NNG4 LessOrEqual level 8 (`le_total`).
+Theorems that earlier NNG worlds already unlocked (`zero_le`, `add_zero`,
+`add_succ`, `succ_add`, `add_assoc`, `succ_eq_add_one`, `le_trans`,
+`le_succ_self`) are provided here as axioms so this playground can host
+that single level without GameServer.

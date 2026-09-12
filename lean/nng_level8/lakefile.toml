@@ -1,0 +1,11 @@
+name = "nng_level8"
+version = "0.1.0"
+defaultTargets = ["NngLevel8"]
+
+[[lean_lib]]
+name = "NngLevel8"
+globs = ["NngLevel8", "NngLevel8.+"]
+
+# Official-solution compile check. Not a default target, not imported by Play.
+[[lean_lib]]
+name = "SolutionCheck"

@@ -1,145 +1,193 @@
 package com.neojou.leangame
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import com.neojou.leangame.level.Level8
+import com.neojou.leangame.level.matchingHiddenHints
+import com.neojou.leangame.session.createLeanSession
+import com.neojou.leangame.session.requestAppExit
+import com.neojou.leangame.ui.AboutDialog
+import com.neojou.leangame.ui.DiagnosticDialog
+import com.neojou.leangame.ui.PlayFileDialog
+import com.neojou.leangame.ui.StatusBar
+import com.neojou.leangame.ui.pane.CenterPane
+import com.neojou.leangame.ui.pane.LeftPane
+import com.neojou.leangame.ui.pane.RightPane
 import com.neojou.tools.LogLevel
 import com.neojou.tools.MyLog
 import com.neojou.tools.ui.menu.MyTopMenuBar
 import com.neojou.tools.ui.menu.MyTopMenuItem
 
-/**
- * Log tag used by [LeanGame] for logging UI events.
- */
 private const val TAG = "LEANGame"
 
-/**
- * Main content modes for the shell area below the toolbar.
- */
-private enum class MainContent {
-    /** Default placeholder until a feature is chosen. */
-    Home,
+private enum class OpenDialog { None, About, Diagnostic, PlayFile }
 
-    /** Daily candlestick + volume chart (viewport pan/zoom). */
-    KChart,
-}
-
-/**
- * Primary application shell.
- *
- * Hosts a product-configured [MyTopMenuBar] and content area.
- * - Database → Input / View / Export / Import
- * - K Chart → View / Settings（均線 + KD + MACD 參數）
- */
 @Composable
 fun LeanGame() {
-    var showAbout by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val session = remember { createLeanSession(scope) }
+    val proof by session.proof.collectAsState()
+    val connection by session.connection.collectAsState()
 
-    // Product-specific menu tree only; [MyTopMenuBar] stays app-agnostic.
-    // Rebuilt each composition so callbacks always see current shell state.
+    var draft by remember { mutableStateOf("") }
+    var dialog by remember { mutableStateOf(OpenDialog.None) }
+    var revealedIds by remember { mutableStateOf(setOf<String>()) }
+    var noMoreHints by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(session) {
+        session.start()
+        onDispose { session.close() }
+    }
+
+    LaunchedEffect(Unit) {
+        MyLog.add(TAG, "Enter level 8", LogLevel.DEBUG)
+    }
+
+    val revealedHints = Level8.hiddenHints.filter { it.id in revealedIds }
+    val canSubmit = proof.canSubmit
+
     val topMenus = listOf(
         MyTopMenuItem(
-            id = "about",
-            label = "About",
-            onClick = { showAbout = true },
+            id = "game",
+            label = "遊戲",
+            children = listOf(
+                MyTopMenuItem(
+                    id = "restart",
+                    label = "重新開始本關",
+                    enabled = !proof.busy,
+                    onClick = {
+                        session.restart()
+                        draft = ""
+                        revealedIds = emptySet()
+                        noMoreHints = null
+                    },
+                ),
+                MyTopMenuItem(
+                    id = "quit",
+                    label = "結束",
+                    onClick = { requestAppExit() },
+                ),
+            ),
+        ),
+        MyTopMenuItem(
+            id = "proof",
+            label = "證明",
+            children = listOf(
+                MyTopMenuItem(
+                    id = "undo",
+                    label = "復原一步",
+                    enabled = !proof.busy && proof.acceptedCommands.isNotEmpty(),
+                    onClick = { session.undo() },
+                ),
+                MyTopMenuItem(
+                    id = "show-file",
+                    label = "顯示目前 Lean 檔",
+                    onClick = { dialog = OpenDialog.PlayFile },
+                ),
+            ),
+        ),
+        MyTopMenuItem(
+            id = "help",
+            label = "說明",
+            children = listOf(
+                MyTopMenuItem(
+                    id = "about",
+                    label = "關於",
+                    onClick = { dialog = OpenDialog.About },
+                ),
+                MyTopMenuItem(
+                    id = "diag",
+                    label = "Lean 連線診斷",
+                    onClick = { dialog = OpenDialog.Diagnostic },
+                ),
+            ),
         ),
     )
 
-    LaunchedEffect(Unit) {
-        MyLog.add(TAG, "Enter", LogLevel.DEBUG)
-    }
-
     Scaffold(
-        topBar = {
-            MyTopMenuBar(items = topMenus)
-        },
+        topBar = { MyTopMenuBar(items = topMenus) },
+        bottomBar = { StatusBar(connection = connection, busy = proof.busy) },
     ) { innerPadding ->
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentAlignment = Alignment.Center,
         ) {
-            Text("LEAN Game")
+            LeftPane(
+                level = Level8,
+                completed = proof.completed,
+                revealedHints = revealedHints,
+                noMoreHintsMessage = noMoreHints,
+                onShowMoreHints = {
+                    val matching = matchingHiddenHints(proof.currentGoals, Level8.hiddenHints)
+                        .filter { it.id !in revealedIds }
+                    if (matching.isEmpty()) {
+                        noMoreHints = "目前沒有更多提示。"
+                    } else {
+                        revealedIds = revealedIds + matching.map { it.id }
+                        noMoreHints = null
+                    }
+                },
+                modifier = Modifier.weight(0.25f).fillMaxHeight(),
+            )
+            VerticalDivider()
+            CenterPane(
+                level = Level8,
+                proof = proof,
+                draft = draft,
+                onDraftChange = { draft = it },
+                onSubmit = submit@{
+                    if (!canSubmit) return@submit
+                    session.submit(draft)
+                },
+                onRestartFrom = { stepIndex ->
+                    session.restartFrom(stepIndex)
+                    draft = ""
+                },
+                modifier = Modifier.weight(0.50f).fillMaxHeight(),
+            )
+            VerticalDivider()
+            RightPane(
+                level = Level8,
+                onInsert = { template ->
+                    draft = if (draft.isBlank()) template else draft + template
+                },
+                modifier = Modifier.weight(0.25f).fillMaxHeight(),
+            )
         }
     }
 
-    if (showAbout) {
-        AboutDialog(onDismiss = { showAbout = false })
+    when (dialog) {
+        OpenDialog.About -> AboutDialog(onDismiss = { dialog = OpenDialog.None })
+        OpenDialog.Diagnostic -> DiagnosticDialog(connection, onDismiss = { dialog = OpenDialog.None })
+        OpenDialog.PlayFile -> PlayFileDialog(proof.playFileText, onDismiss = { dialog = OpenDialog.None })
+        OpenDialog.None -> Unit
     }
 
-}
-
-@Composable
-private fun AboutDialog(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
-            modifier = Modifier
-                .widthIn(max = 400.dp)
-                .fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = "About",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = AppVersion.APP_NAME,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = AppVersion.APP_NAME_EN,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                )
-                Text(
-                    text = "版本 ${AppVersion.DISPLAY}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = AppVersion.SUMMARY,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                )
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End),
-                ) {
-                    Text("關閉")
-                }
+    LaunchedEffect(proof.steps.size, proof.lastSubmitError, proof.busy) {
+        if (!proof.busy && proof.lastSubmitError == null && proof.acceptedCommands.isNotEmpty()) {
+            // Successful submit: last command matches what we sent; clear if draft equals it.
+            val last = proof.acceptedCommands.last()
+            if (draft.trim().trimEnd(',') == last) {
+                draft = ""
             }
         }
+        if (proof.completed) {
+            noMoreHints = null
+        }
     }
 }
-

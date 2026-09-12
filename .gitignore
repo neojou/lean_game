@@ -122,6 +122,13 @@ bin/
 # Kotlin/JS store (if a wasm/JS target is added later)
 kotlin-js-store/
 
+# Lean / Lake
+**/.lake/
+*.olean
+*.ilean
+*.olean.hash
+/lean/**/build/
+
 # Gradle tooling
 gradle-app.setting
 .gradletasknamecache

@@ -74,9 +74,9 @@ fun App() {
 
     AppTheme {
         when (val state = initState) {
-            AppInitState.Loading -> Text("Loading...")
+            AppInitState.Loading -> Text("載入中…")
             AppInitState.Ready -> LeanGame()
-            is AppInitState.Error -> Text("Init failed: ${state.error.message ?: "unknown"}")
+            is AppInitState.Error -> Text("啟動失敗：${state.error.message ?: "未知錯誤"}")
         }
     }
 }
