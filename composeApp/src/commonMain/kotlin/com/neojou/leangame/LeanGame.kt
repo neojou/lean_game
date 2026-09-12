@@ -163,9 +163,6 @@ fun LeanGame() {
             VerticalDivider()
             RightPane(
                 level = Level8,
-                onInsert = { template ->
-                    draft = if (draft.isBlank()) template else draft + template
-                },
                 modifier = Modifier.weight(0.25f).fillMaxHeight(),
             )
         }

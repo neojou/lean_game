@@ -18,4 +18,4 @@ cd lean/nng_level8 && lake build
 ./gradlew :composeApp:run
 ```
 
-視窗裡用右欄按鈕插入 tactic、Enter 送出。官方解答見 `AGENTS.md` §7（不要預填）。連不上時看選單「說明 → Lean 連線診斷」。
+視窗中欄輸入 tactic 後 Enter 送出。右欄點按鈕看說明（不會插入輸入框）；說明寫在 `docs/lean-commands/`，改完需重新編譯。官方解答見 `AGENTS.md` §7。連不上時看選單「說明 → Lean 連線診斷」。

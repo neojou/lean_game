@@ -31,7 +31,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
         Text("版本 ${AppVersion.DISPLAY}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(AppVersion.SUMMARY, style = MaterialTheme.typography.bodySmall)
         Text(
-            "第一版只做 NNG4 ≤ 世界第 8 關 le_total，Typewriter 模式，本機 lake serve。",
+            "NNG4 ≤ 世界第 8 關 le_total，Typewriter 模式，本機 lake serve。右欄點按鈕看編譯進來的指令說明。",
             style = MaterialTheme.typography.bodySmall,
         )
     }

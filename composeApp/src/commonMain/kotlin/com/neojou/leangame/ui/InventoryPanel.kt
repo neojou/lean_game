@@ -2,110 +2,140 @@ package com.neojou.leangame.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.neojou.leangame.docs.LeanCommandDocs
 import com.neojou.leangame.level.InventoryItem
 import com.neojou.leangame.level.LevelContent
+import com.neojou.leangame.level.TheoremTab
+import com.neojou.leangame.ui.markdown.SimpleMarkdown
 
-private enum class InventoryTab { Tactics, Theorems, Definitions }
+private enum class InventoryTab(val label: String) {
+    Theorems("定理"),
+    Tactics("策略"),
+    Definitions("定義"),
+}
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun InventoryPanel(
     level: LevelContent,
-    onInsert: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var tab by remember { mutableStateOf(InventoryTab.Tactics) }
+    var theoremTab by remember { mutableStateOf(TheoremTab.Plus) }
+    var selected by remember { mutableStateOf<InventoryItem?>(null) }
+
     val items = when (tab) {
         InventoryTab.Tactics -> level.tactics
-        InventoryTab.Theorems -> level.theorems
         InventoryTab.Definitions -> level.definitions
+        InventoryTab.Theorems -> level.theorems.filter { it.theoremTab == theoremTab }
     }
+
     Column(modifier = modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = tab.ordinal) {
-            Tab(
-                selected = tab == InventoryTab.Tactics,
-                onClick = { tab = InventoryTab.Tactics },
-                text = { Text("Tactics") },
-            )
-            Tab(
-                selected = tab == InventoryTab.Theorems,
-                onClick = { tab = InventoryTab.Theorems },
-                text = { Text("Theorems") },
-            )
-            Tab(
-                selected = tab == InventoryTab.Definitions,
-                onClick = { tab = InventoryTab.Definitions },
-                text = { Text("Definitions") },
-            )
+            InventoryTab.entries.forEach { t ->
+                Tab(
+                    selected = tab == t,
+                    onClick = {
+                        tab = t
+                        selected = null
+                    },
+                    text = { Text(t.label) },
+                )
+            }
         }
-        Text(
-            "精簡背包：點名稱插入輸入框，不會立刻送出。旁的 ? 看繁中說明。",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-        )
+        if (tab == InventoryTab.Theorems) {
+            PrimaryScrollableTabRow(
+                selectedTabIndex = TheoremTab.entries.indexOf(theoremTab),
+                edgePadding = 8.dp,
+            ) {
+                TheoremTab.entries.forEach { g ->
+                    Tab(
+                        selected = theoremTab == g,
+                        onClick = {
+                            theoremTab = g
+                            selected = null
+                        },
+                        text = { Text(g.label, fontFamily = FontFamily.Monospace) },
+                    )
+                }
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+        ) {
+            if (items.isEmpty()) {
+                Text(
+                    if (tab == InventoryTab.Theorems) "此分類在本關沒有定理。" else "沒有項目。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items.forEach { item ->
+                        val isOn = selected?.docId == item.docId
+                        OutlinedButton(
+                            onClick = { selected = item },
+                            shape = RoundedCornerShape(4.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isOn) {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                            ),
+                        ) {
+                            Text(item.name, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
+        HorizontalDivider()
+        val current = selected
         Column(
             modifier = Modifier
                 .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+                .padding(12.dp),
         ) {
-            items.forEach { item ->
-                InventoryRow(item = item, onInsert = onInsert)
-            }
-        }
-    }
-}
-
-@Composable
-private fun InventoryRow(
-    item: InventoryItem,
-    onInsert: (String) -> Unit,
-) {
-    var expanded by remember(item.name) { mutableStateOf(false) }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedButton(onClick = { onInsert(item.insertTemplate) }) {
-                Text(item.name, fontFamily = FontFamily.Monospace)
-            }
-            TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "收起" else "?")
-            }
-        }
-        if (expanded) {
-            Text(
-                text = item.descriptionZh,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
-            )
-            item.englishNote?.let {
+            if (current == null) {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall,
+                    "點選上方按鈕查看說明（不會插入輸入框）。",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
                 )
+            } else {
+                SimpleMarkdown(LeanCommandDocs.text(current.docId))
             }
         }
     }

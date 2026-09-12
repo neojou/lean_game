@@ -226,11 +226,11 @@ Typewriter 語意（對齊網站）：
 |  選單：遊戲 / 證明 / 說明                                      |
 +------------------+---------------------------+----------------+
 | 左 約 25%        | 中 約 50%                 | 右 約 25%      |
-| 關卡標題         | 題目陳述（固定）           | Tactics 分頁   |
-| 引言             | ---------------------------| Theorems 分頁  |
-| 對話 / hint      | 目前 goals                 | Definitions   |
-| 「顯示更多提示」  | 已送出的指令列             | 按鈕=插入指令 |
-| 過關結語         | [ typewriter 輸入 ] 送出   | 點開看繁中說明 |
+| 關卡標題         | 題目陳述（固定）           | 定理 / 策略 / 定義 |
+| 引言             | ---------------------------| 定理子分類 + * ^ ≤ … |
+| 對話 / hint      | 目前 goals                 | 指令按鈕（英文名） |
+| 「顯示更多提示」  | 已送出的指令列             | 說明框（md 編譯進來）|
+| 過關結語         | [ typewriter 輸入 ] 送出   | 點按鈕=顯示說明   |
 +------------------+---------------------------+----------------+
 | 狀態列：Lean 版本 / 連線 / 忙碌                               |
 +---------------------------------------------------------------+
@@ -238,8 +238,9 @@ Typewriter 語意（對齊網站）：
 
 行為細節：
 
-- **右欄按鈕**：面上寫英文 tactic/theorem 名（`induction`、`zero_le`）。點一下把文字插入中間輸入框（不要立刻送出，讓玩家改參數，例如 `induction y with d hd`）。
-- **說明**：點按鈕旁的 `?` 或展開卡片，內文全繁中；可附一行英文原文術語。
+- **右欄分頁**（繁中，對齊 NNG 截圖）：**定理**、**策略**、**定義**。定理底下再依 `+` `*` `^` `≤` `012` `Peano` 分子分類顯示不同按鈕群。
+- **右欄按鈕**：面上寫英文 tactic/theorem 名。**點一下只在下方說明框顯示該指令的說明，不要插入中間輸入框，不要另做 `?`。** 玩家自己在中欄打字。
+- **說明來源**：`docs/lean-commands/<docId>.md`，一個指令一個檔，繁中，含概述與多情境示例。Gradle 編譯期嵌進 `LeanCommandDocs`（KMP 靜態資源）；**執行期不讀這個目錄**。改 md 後必須重新編譯才看得到。定義 `ℕ`/`≤`/`∨` 的檔名用 `nat.md` / `le.md` / `or.md`。
 - **左欄**：先顯示引言。每一步若有對應 hint，追加在對話區。隱藏 hint 預設不出現，需按「顯示更多提示！」（對齊網站 "Show more help!"）。
 - **中欄 goals**：每個 goal 先 hyps（`x y : ℕ`、`hd : …`）再 `⊢ target`。多 goal 時分塊，標「目標 1 / 2」。
 - 字型用已有 Noto Sans TC；程式碼／Lean 符號用等寬（可再加 JetBrains Mono 或系統 monospace）。
@@ -318,7 +319,7 @@ exact he
 
 ## 8. 右欄 inventory（第一版最小集）
 
-指令名英文、說明繁中。點按鈕插入左邊列出的「插入範本」。
+指令名英文、說明繁中。v0.3 起點按鈕**只顯示** `docs/lean-commands/` 裡對應 md，不插入輸入框。下表「插入範本」僅供玩家手打參考，不是按鈕行為。
 
 ### Tactics
 
@@ -332,17 +333,24 @@ exact he
 | `left` | `left` | 目標是 `P ∨ Q` 時，改證 `P`。沒把握就別先按。 |
 | `right` | `right` | 目標是 `P ∨ Q` 時，改證 `Q`。 |
 | `use` | `use ` | 目標是 `∃ c, ...` 時，提出見證。本遊戲裡 `a ≤ b` 就是 `∃ c, b = a + c`。 |
+| `apply` | `apply  at ` | `apply t at h` 把定理用在假設上。 |
+
+完整說明以 `docs/lean-commands/<name>.md` 為準（編譯期打包）。
 
 ### Theorems（本關常用）
 
 | 名稱 | 插入範本 | 說明（繁中） |
 |---|---|---|
-| `zero_le` | `zero_le ` | `zero_le x`：`0 ≤ x`。 |
-| `add_zero` | `add_zero` | `a + 0 = a`。 |
-| `add_succ` | `add_succ` | `a + succ b = succ (a + b)`。 |
-| `succ_add` | `succ_add` | `succ a + b = succ (a + b)`。 |
-| `add_assoc` | `add_assoc` | `(a + b) + c = a + (b + c)`。 |
-| `succ_eq_add_one` | `succ_eq_add_one` | `succ n = n + 1`。 |
+| `zero_le` | `zero_le ` | `0 ≤ x`。分類 `≤`。 |
+| `add_zero` | `add_zero` | `a + 0 = a`。分類 `+`。 |
+| `add_succ` | `add_succ` | `a + succ b = succ (a + b)`。分類 `+`。 |
+| `succ_add` | `succ_add` | `succ a + b = succ (a + b)`。分類 `+`。 |
+| `add_assoc` | `add_assoc` | `(a + b) + c = a + (b + c)`。分類 `+`。 |
+| `succ_eq_add_one` | `succ_eq_add_one` | `succ n = n + 1`。分類 `+`。 |
+| `le_trans` | `le_trans ` | `x ≤ y → y ≤ z → x ≤ z`。分類 `≤`。 |
+| `le_succ_self` | `le_succ_self ` | `x ≤ succ x`。分類 `≤`。 |
+
+加法相關（`add_zero` 等）分類在定理子頁 `+`。本關 `*` `^` `012` `Peano` 可以是空的。
 
 ### Definitions
 
@@ -376,8 +384,10 @@ lean_game/
         GoalView.kt
         TypewriterBar.kt
         InventoryPanel.kt
+        markdown/SimpleMarkdown.kt
       session/
         LeanSession.kt               -- expect
+  docs/lean-commands/                -- 指令說明（一個指令一個 md；編譯期打包）
     src/desktopMain/kotlin/com/neojou/leangame/
       Main.kt
       session/
@@ -422,7 +432,7 @@ P0–P2 是內部施工順序，不是四次獨立交付。不要做到 P0 就�
 ### P0 — 殼與第八關靜態 UI（內部第一步）
 
 - 清掉 KChart 選單殘留與誤導註解
-- 三欄 layout + 繁中文案 + inventory 插入輸入框
+- 三欄 layout + 繁中文案 + 右欄指令說明（點按鈕顯示 md，不插入）
 - `FakeLeanSession` 可以暫時存在，但不可當最終後端
 - 內部檢查：視窗打開就能讀完引言、點 `induction` 插入文字、按「顯示更多提示」看到第一則隱藏 hint
 

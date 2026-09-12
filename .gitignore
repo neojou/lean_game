@@ -2,6 +2,7 @@
 
 # grok
 mygrok
+/docs/refs/
 
 # dependencies
 /node_modules

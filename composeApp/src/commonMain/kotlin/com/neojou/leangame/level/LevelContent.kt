@@ -8,12 +8,25 @@ enum class InventoryKind {
     Definition,
 }
 
+/** NNG-style theorem groups shown as sub-tabs under 定理. */
+enum class TheoremTab(val label: String) {
+    Plus("+"),
+    Times("*"),
+    Pow("^"),
+    Le("≤"),
+    Numerals("012"),
+    Peano("Peano"),
+}
+
 data class InventoryItem(
     val kind: InventoryKind,
     val name: String,
     val insertTemplate: String,
     val descriptionZh: String,
     val englishNote: String? = null,
+    /** Filename stem under `docs/lean-commands/` (no `.md`). */
+    val docId: String = name,
+    val theoremTab: TheoremTab? = null,
 )
 
 data class HiddenHint(

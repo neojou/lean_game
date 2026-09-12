@@ -8,8 +8,7 @@ import com.neojou.leangame.ui.InventoryPanel
 @Composable
 fun RightPane(
     level: LevelContent,
-    onInsert: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    InventoryPanel(level = level, onInsert = onInsert, modifier = modifier)
+    InventoryPanel(level = level, modifier = modifier)
 }

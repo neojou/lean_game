@@ -1,5 +1,6 @@
 package com.neojou.leangame.proof
 
+import com.neojou.leangame.docs.LeanCommandDocs
 import com.neojou.leangame.level.Level8
 import com.neojou.leangame.level.matchingHiddenHints
 import kotlin.test.Test
@@ -15,6 +16,15 @@ class ProofLogicTest {
         assertTrue(Level8.theorems.any { it.name == "le_trans" })
         assertTrue(Level8.theorems.any { it.name == "le_succ_self" })
         assertTrue(Level8.tactics.any { it.name == "apply" })
+    }
+
+    @Test
+    fun everyInventoryItemHasCompiledMarkdown() {
+        val items = Level8.tactics + Level8.theorems + Level8.definitions
+        items.forEach { item ->
+            assertTrue(LeanCommandDocs.has(item.docId), "missing docs/lean-commands/${item.docId}.md")
+            assertTrue(LeanCommandDocs.text(item.docId).length > 80, "${item.docId} doc too short")
+        }
     }
 
     @Test
